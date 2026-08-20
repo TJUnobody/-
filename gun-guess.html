@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>猜枪 - Gundle</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  text-align: center;
+  color: #888;
+  margin-bottom: 30px;
+  font-size: 0.9rem;
+}
+
+.search-area {
+  position: relative;
+  max-width: 400px;
+  margin: 0 auto 30px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: 2px solid #333;
+  background: #16213e;
+  color: #eee;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.search-input:focus {
+  border-color: #f5576c;
+}
+
+.search-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  margin-top: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+}
+
+.dropdown.show { display: block; }
+
+.dropdown-item {
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dropdown-item:hover {
+  background: #1a1a3e;
+}
+
+.dropdown-item .gun-name {
+  font-weight: 600;
+}
+
+.dropdown-item .gun-type {
+  font-size: 0.8rem;
+  color: #888;
+  background: #2a2a4e;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.header-row {
+  display: grid;
+  grid-template-columns: 100px repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.header-cell {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #aaa;
+  font-weight: 600;
+  padding: 8px 4px;
+}
+
+.guesses-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guess-row {
+  display: grid;
+  grid-template-columns: 100px repeat(7, 1fr);
+  gap: 6px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.guess-cell {
+  padding: 10px 6px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  animation: flipIn 0.4s ease;
+}
+
+@keyframes flipIn {
+  0% { transform: rotateX(90deg); opacity: 0; }
+  100% { transform: rotateX(0); opacity: 1; }
+}
+
+.guess-cell:nth-child(1) { animation-delay: 0s; }
+.guess-cell:nth-child(2) { animation-delay: 0.05s; }
+.guess-cell:nth-child(3) { animation-delay: 0.1s; }
+.guess-cell:nth-child(4) { animation-delay: 0.15s; }
+.guess-cell:nth-child(5) { animation-delay: 0.2s; }
+.guess-cell:nth-child(6) { animation-delay: 0.25s; }
+.guess-cell:nth-child(7) { animation-delay: 0.3s; }
+.guess-cell:nth-child(8) { animation-delay: 0.35s; }
+
+.cell-name {
+  background: #2a2a4e;
+  font-size: 0.85rem;
+}
+
+.cell-green {
+  background: #2d8a4e;
+}
+
+.cell-yellow {
+  background: #b59f3b;
+}
+
+.cell-red {
+  background: #6b2d2d;
+}
+
+.arrow {
+  font-size: 0.7rem;
+  margin-top: 2px;
+  opacity: 0.9;
+}
+
+.game-status {
+  text-align: center;
+  margin: 24px 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.game-status.win {
+  color: #2d8a4e;
+}
+
+.game-status.lose {
+  color: #f5576c;
+}
+
+.btn {
+  display: block;
+  margin: 16px auto;
+  padding: 12px 32px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.btn:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.attempts-counter {
+  text-align: center;
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.legend-dot.green { background: #2d8a4e; }
+.legend-dot.yellow { background: #b59f3b; }
+.legend-dot.red { background: #6b2d2d; }
+
+@media (max-width: 700px) {
+  .header-row, .guess-row {
+    grid-template-columns: 70px repeat(7, 1fr);
+    gap: 3px;
+  }
+  .guess-cell {
+    padding: 8px 3px;
+    font-size: 0.7rem;
+    min-height: 44px;
+  }
+  .header-cell {
+    font-size: 0.65rem;
+  }
+  h1 { font-size: 1.6rem; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔫 Gundle</h1>
+  <p class="subtitle">猜出今天的神秘枪械！你有 10 次机会</p>
+  
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot green"></div>完全正确</div>
+    <div class="legend-item"><div class="legend-dot yellow"></div>接近</div>
+    <div class="legend-item"><div class="legend-dot red"></div>不对</div>
+  </div>
+
+  <div class="search-area">
+    <input type="text" class="search-input" id="searchInput" placeholder="输入枪械名称..." autocomplete="off">
+    <div class="dropdown" id="dropdown"></div>
+  </div>
+
+  <div class="attempts-counter" id="attemptsCounter">已猜 0 / 10 次</div>
+
+  <div class="header-row">
+    <div class="header-cell">枪械</div>
+    <div class="header-cell">类型</div>
+    <div class="header-cell">伤害</div>
+    <div class="header-cell">射速</div>
+    <div class="header-cell">容量</div>
+    <div class="header-cell">开火模式</div>
+    <div class="header-cell">优势射程</div>
+    <div class="header-cell">护甲伤害</div>
+  </div>
+
+  <div class="guesses-area" id="guessesArea"></div>
+  
+  <div class="game-status" id="gameStatus"></div>
+</div>
+
+<script>
+const GUNS_DATA = [
+  {"name":"RM277","type":"步枪","damage":41,"range":55,"armorDamage":42,"fireRate":550,"capacity":30,"fireMode":"全自动/单发"},
+  {"name":"AR57","type":"步枪","damage":30,"range":35,"armorDamage":31,"fireRate":900,"capacity":50,"fireMode":"全自动/单发"},
+  {"name":"MCX LT","type":"步枪","damage":34,"range":30,"armorDamage":26,"fireRate":840,"capacity":30,"fireMode":"全自动/单发"},
+  {"name":"MK47","type":"步枪","damage":42,"range":30,"armorDamage":46,"fireRate":625,"capacity":20,"fireMode":"单发/全自动"},
+  {"name":"KC17","type":"步枪","damage":31,"range":55,"armorDamage":48,"fireRate":740,"capacity":30,"fireMode":"全自动/单发"},
+  {"name":"K437","type":"步枪","damage":36,"range":35,"armorDamage":32,"fireRate":780,"capacity":30,"fireMode":"全自动/单发"},
+  {"name":"腾龙","type":"步枪","damage":35,"range":35,"armorDamage":38,"fireRate":706,"capacity":30,"fireMode":"全自动/单发"},
+  {"name":"AS Val","type":"步枪","damage":28,"range":21,"armorDamage":44,"fireRate":972,"capacity":15,"fireMode":"全自动/单发"},
+  {"name":"CAR-15","type":"步枪","damage":27,"range":40,"armorDamage":32,"fireRate":632,"capacity":20,"fireMode":"全自动/单发"},
+  {"name":"PTR-32","type":"步枪","damage":36,"range":40,"armorDamage":37,"fireRate":632,"capacity":30,"fireMode":"单发/全自动"},
+  {"name":"G3","type":"步枪","damage":39,"range":55,"armorDamage":42,"fireRate":533,"capacity":20,"fireMode":"单发/全自动"},
+  {"name":"SCAR-H","type":"步枪","damage":40,"range":40,"armorDamage":41,"fireRate":585,"capacity":20,"fireMode":"单发/全自动"},
+  {"name":"AK-12","type":"步枪","damage":30,"range":40,"armorDamage":42,"fireRate":735,"capacity":30,"fireMode":"单发/连发/全自动"},
+  {"name":"SG552","type":"步枪","damage":25,"range":35,"armorDamage":34,"fireRate":906,"capacity":20,"fireMode":"单发/全自动/连发"},
+  {"name":"M7","type":"步枪","damage":37,"range":50,"armorDamage":40,"fireRate":649,"capacity":20,"fireMode":"全自动/单发"},
+  {"name":"AUG","type":"步枪","damage":32,"range":55,"armorDamage":35,"fireRate":679,"capacity":30,"fireMode":"全自动/单发"},
+  {"name":"M16A4","type":"步枪","damage":33,"range":55,"armorDamage":39,"fireRate":508,"capacity":20,"fireMode":"连发/单发"},
+  {"name":"K416","type":"步枪","damage":31,"range":27,"armorDamage":35,"fireRate":880,"capacity":30,"fireMode":"全自动/单发"},
+  {"name":"ASh-12","type":"步枪","damage":56,"range":55,"armorDamage":55,"fireRate":500,"capacity":20,"fireMode":"全自动/单发"},
+  {"name":"AKS-74U","type":"步枪","damage":34,"range":40,"armorDamage":36,"fireRate":533,"capacity":20,"fireMode":"单发/全自动"},
+  {"name":"QBZ95-1","type":"步枪","damage":28,"range":55,"armorDamage":42,"fireRate":679,"capacity":30,"fireMode":"单发/全自动"},
+  {"name":"AKM","type":"步枪","damage":40,"range":40,"armorDamage":42,"fireRate":600,"capacity":30,"fireMode":"单发/全自动"},
+  {"name":"M4A1","type":"步枪","damage":31,"range":40,"armorDamage":33,"fireRate":800,"capacity":30,"fireMode":"全自动/单发"},
+  {"name":"MK4","type":"冲锋枪","damage":34,"range":20,"armorDamage":30,"fireRate":793,"capacity":24,"fireMode":"单发/连发"},
+  {"name":"QCQ171","type":"冲锋枪","damage":36,"range":20,"armorDamage":33,"fireRate":763,"capacity":30,"fireMode":"全自动/单发"},
+  {"name":"MP7","type":"冲锋枪","damage":32,"range":20,"armorDamage":28,"fireRate":950,"capacity":20,"fireMode":"全自动/单发"},
+  {"name":"勇士","type":"冲锋枪","damage":36,"range":20,"armorDamage":35,"fireRate":700,"capacity":30,"fireMode":"单发/全自动"},
+  {"name":"SR-3M","type":"冲锋枪","damage":36,"range":15,"armorDamage":48,"fireRate":747,"capacity":15,"fireMode":"全自动/单发"},
+  {"name":"SMG-45","type":"冲锋枪","damage":35,"range":27,"armorDamage":40,"fireRate":605,"capacity":25,"fireMode":"全自动/单发"},
+  {"name":"野牛","type":"冲锋枪","damage":32,"range":20,"armorDamage":35,"fireRate":659,"capacity":32,"fireMode":"全自动/单发"},
+  {"name":"UZI","type":"冲锋枪","damage":28,"range":20,"armorDamage":35,"fireRate":780,"capacity":25,"fireMode":"全自动/单发"},
+  {"name":"Vector","type":"冲锋枪","damage":32,"range":20,"armorDamage":28,"fireRate":1091,"capacity":17,"fireMode":"全自动/单发/连发"},
+  {"name":"P90","type":"冲锋枪","damage":32,"range":20,"armorDamage":35,"fireRate":898,"capacity":50,"fireMode":"单发/全自动"},
+  {"name":"MP5","type":"冲锋枪","damage":30,"range":20,"armorDamage":32,"fireRate":820,"capacity":30,"fireMode":"全自动/单发/连发"},
+  {"name":"FS-12","type":"霰弹枪","damage":"14x8","range":12,"armorDamage":"16x8","fireRate":300,"capacity":6,"fireMode":"单发"},
+  {"name":"725","type":"霰弹枪","damage":"17x8","range":15,"armorDamage":"18x8","fireRate":375,"capacity":2,"fireMode":"单发"},
+  {"name":"M870","type":"霰弹枪","damage":"17x8","range":12,"armorDamage":"16x8","fireRate":74,"capacity":6,"fireMode":"单发"},
+  {"name":"S12K","type":"霰弹枪","damage":"13x8","range":10,"armorDamage":"16x8","fireRate":300,"capacity":5,"fireMode":"单发"},
+  {"name":"M1014","type":"霰弹枪","damage":"14x8","range":12,"armorDamage":"16x8","fireRate":261,"capacity":7,"fireMode":"单发"},
+  {"name":"QJB201","type":"轻机枪","damage":32,"range":40,"armorDamage":38,"fireRate":785,"capacity":125,"fireMode":"全自动"},
+  {"name":"M250","type":"轻机枪","damage":55,"range":40,"armorDamage":53,"fireRate":550,"capacity":125,"fireMode":"全自动/单发"},
+  {"name":"M249","type":"轻机枪","damage":30,"range":40,"armorDamage":38,"fireRate":858,"capacity":100,"fireMode":"全自动"},
+  {"name":"PKM","type":"轻机枪","damage":45,"range":40,"armorDamage":42,"fireRate":669,"capacity":75,"fireMode":"全自动"},
+  {"name":"SVCH","type":"精确射手步枪","damage":47,"range":65,"armorDamage":46,"fireRate":600,"capacity":10,"fireMode":"单发"},
+  {"name":"杠杆式步枪","type":"精确射手步枪","damage":70,"range":30,"armorDamage":25,"fireRate":100,"capacity":10,"fireMode":"单发"},
+  {"name":"PSG-1","type":"精确射手步枪","damage":50,"range":90,"armorDamage":55,"fireRate":300,"capacity":10,"fireMode":"单发"},
+  {"name":"SR9","type":"精确射手步枪","damage":50,"range":90,"armorDamage":55,"fireRate":261,"capacity":10,"fireMode":"单发"},
+  {"name":"SR-25","type":"精确射手步枪","damage":50,"range":60,"armorDamage":55,"fireRate":364,"capacity":10,"fireMode":"单发"},
+  {"name":"SKS","type":"精确射手步枪","damage":48,"range":55,"armorDamage":49,"fireRate":510,"capacity":10,"fireMode":"单发"},
+  {"name":"M14","type":"精确射手步枪","damage":39,"range":40,"armorDamage":41,"fireRate":727,"capacity":10,"fireMode":"全自动/单发"},
+  {"name":"SVD","type":"精确射手步枪","damage":56,"range":70,"armorDamage":56,"fireRate":300,"capacity":10,"fireMode":"单发"},
+  {"name":"VSS","type":"精确射手步枪","damage":40,"range":120,"armorDamage":48,"fireRate":480,"capacity":15,"fireMode":"单发/全自动"},
+  {"name":"Mini-14","type":"精确射手步枪","damage":34,"range":90,"armorDamage":38,"fireRate":590,"capacity":10,"fireMode":"单发"},
+  {"name":"M82","type":"狙击步枪","damage":100,"range":200,"armorDamage":20,"fireRate":100,"capacity":5,"fireMode":"单发"},
+  {"name":"AWM","type":"狙击步枪","damage":100,"range":200,"armorDamage":10,"fireRate":35,"capacity":5,"fireMode":"单发"},
+  {"name":"M700","type":"狙击步枪","damage":61,"range":150,"armorDamage":58,"fireRate":48,"capacity":5,"fireMode":"单发"},
+  {"name":"R93","type":"狙击步枪","damage":61,"range":150,"armorDamage":58,"fireRate":56,"capacity":10,"fireMode":"单发"},
+  {"name":"SV-98","type":"狙击步枪","damage":60,"range":150,"armorDamage":58,"fireRate":44,"capacity":7,"fireMode":"单发"},
+  {"name":"M1911","type":"手枪","damage":40,"range":15,"armorDamage":30,"fireRate":373,"capacity":7,"fireMode":"单发"},
+  {"name":"G17","type":"手枪","damage":27,"range":27,"armorDamage":25,"fireRate":462,"capacity":17,"fireMode":"单发"},
+  {"name":"93R","type":"手枪","damage":34,"range":22,"armorDamage":32,"fireRate":508,"capacity":12,"fireMode":"连发"},
+  {"name":"G18","type":"手枪","damage":23,"range":10,"armorDamage":16,"fireRate":1172,"capacity":17,"fireMode":"全自动"},
+  {"name":"沙漠之鹰","type":"手枪","damage":56,"range":15,"armorDamage":53,"fireRate":207,"capacity":7,"fireMode":"单发"},
+  {"name":".357左轮","type":"手枪","damage":56,"range":35,"armorDamage":39,"fireRate":182,"capacity":6,"fireMode":"单发"},
+  {"name":"QSZ92G","type":"手枪","damage":34,"range":27,"armorDamage":32,"fireRate":375,"capacity":15,"fireMode":"单发"},
+  {"name":"复合弓","type":"特殊武器","damage":90,"range":65,"armorDamage":65,"fireRate":182,"capacity":1,"fireMode":"单发"}
+];
+
+const MAX_ATTEMPTS = 10;
+let targetGun = null;
+let attempts = 0;
+let gameOver = false;
+let guessedNames = new Set();
+
+function initGame() {
+  targetGun = GUNS_DATA[Math.floor(Math.random() * GUNS_DATA.length)];
+  attempts = 0;
+  gameOver = false;
+  guessedNames.clear();
+  document.getElementById('guessesArea').innerHTML = '';
+  document.getElementById('gameStatus').innerHTML = '';
+  document.getElementById('gameStatus').className = 'game-status';
+  document.getElementById('searchInput').disabled = false;
+  document.getElementById('searchInput').value = '';
+  updateCounter();
+}
+
+function updateCounter() {
+  document.getElementById('attemptsCounter').textContent = `已猜 ${attempts} / ${MAX_ATTEMPTS} 次`;
+}
+
+function parseDamageNum(val) {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string' && val.includes('x')) {
+    const parts = val.split('x');
+    return parseInt(parts[0]) * parseInt(parts[1]);
+  }
+  return parseInt(val) || 0;
+}
+
+function compareNumeric(guessVal, targetVal, threshold) {
+  const g = parseDamageNum(guessVal);
+  const t = parseDamageNum(targetVal);
+  if (g === t) return { status: 'green', arrow: '' };
+  const diff = Math.abs(g - t);
+  const arrow = g < t ? ' ↑' : ' ↓';
+  if (diff <= threshold) return { status: 'yellow', arrow };
+  return { status: 'red', arrow };
+}
+
+function compareFireMode(guessMode, targetMode) {
+  if (guessMode === targetMode) return 'green';
+  const gSet = new Set(guessMode.split('/'));
+  const tSet = new Set(targetMode.split('/'));
+  let overlap = 0;
+  for (const m of gSet) { if (tSet.has(m)) overlap++; }
+  if (overlap > 0) return 'yellow';
+  return 'red';
+}
+
+function makeGuess(gunName) {
+  if (gameOver) return;
+  
+  const gun = GUNS_DATA.find(g => g.name === gunName);
+  if (!gun) return;
+  if (guessedNames.has(gunName)) return;
+  
+  guessedNames.add(gunName);
+  attempts++;
+  updateCounter();
+
+  const results = [];
+  
+  // Name
+  results.push({ text: gun.name, status: 'name' });
+  
+  // Type
+  results.push({
+    text: gun.type,
+    status: gun.type === targetGun.type ? 'green' : 'red',
+    arrow: ''
+  });
+  
+  // Damage
+  const dmgResult = compareNumeric(gun.damage, targetGun.damage, 5);
+  results.push({
+    text: typeof gun.damage === 'string' ? gun.damage : gun.damage.toString(),
+    status: dmgResult.status,
+    arrow: dmgResult.arrow
+  });
+  
+  // Fire Rate
+  const frResult = compareNumeric(gun.fireRate, targetGun.fireRate, 100);
+  results.push({
+    text: gun.fireRate.toString(),
+    status: frResult.status,
+    arrow: frResult.arrow
+  });
+  
+  // Capacity
+  const capResult = compareNumeric(gun.capacity, targetGun.capacity, 5);
+  results.push({
+    text: gun.capacity.toString(),
+    status: capResult.status,
+    arrow: capResult.arrow
+  });
+  
+  // Fire Mode
+  const fmStatus = compareFireMode(gun.fireMode, targetGun.fireMode);
+  results.push({
+    text: gun.fireMode,
+    status: fmStatus,
+    arrow: ''
+  });
+  
+  // Range
+  const rangeResult = compareNumeric(gun.range, targetGun.range, 10);
+  results.push({
+    text: gun.range.toString(),
+    status: rangeResult.status,
+    arrow: rangeResult.arrow
+  });
+  
+  // Armor Damage
+  const adResult = compareNumeric(gun.armorDamage, targetGun.armorDamage, 5);
+  results.push({
+    text: typeof gun.armorDamage === 'string' ? gun.armorDamage : gun.armorDamage.toString(),
+    status: adResult.status,
+    arrow: adResult.arrow
+  });
+
+  renderGuessRow(results);
+  
+  if (gun.name === targetGun.name) {
+    gameOver = true;
+    document.getElementById('searchInput').disabled = true;
+    document.getElementById('gameStatus').className = 'game-status win';
+    document.getElementById('gameStatus').innerHTML = `🎉 恭喜！${attempts} 次猜中 <b>${targetGun.name}</b>！<button class="btn" onclick="initGame()">再来一局</button>`;
+  } else if (attempts >= MAX_ATTEMPTS) {
+    gameOver = true;
+    document.getElementById('searchInput').disabled = true;
+    document.getElementById('gameStatus').className = 'game-status lose';
+    document.getElementById('gameStatus').innerHTML = `💀 很遗憾！答案是 <b>${targetGun.name}</b><button class="btn" onclick="initGame()">再来一局</button>`;
+  }
+}
+
+function renderGuessRow(results) {
+  const row = document.createElement('div');
+  row.className = 'guess-row';
+  
+  results.forEach(r => {
+    const cell = document.createElement('div');
+    cell.className = `guess-cell cell-${r.status}`;
+    cell.innerHTML = `<span>${r.text}</span>${r.arrow ? `<span class="arrow">${r.arrow}</span>` : ''}`;
+    row.appendChild(cell);
+  });
+  
+  document.getElementById('guessesArea').prepend(row);
+}
+
+// Search & Dropdown
+const searchInput = document.getElementById('searchInput');
+const dropdown = document.getElementById('dropdown');
+
+searchInput.addEventListener('input', () => {
+  const val = searchInput.value.trim().toLowerCase();
+  if (!val) { dropdown.classList.remove('show'); return; }
+  
+  const matches = GUNS_DATA.filter(g => 
+    !guessedNames.has(g.name) && 
+    g.name.toLowerCase().includes(val)
+  ).slice(0, 8);
+  
+  if (matches.length === 0) {
+    dropdown.classList.remove('show');
+    return;
+  }
+  
+  dropdown.innerHTML = matches.map(g => `
+    <div class="dropdown-item" data-name="${g.name}">
+      <span class="gun-name">${g.name}</span>
+      <span class="gun-type">${g.type}</span>
+    </div>
+  `).join('');
+  
+  dropdown.classList.add('show');
+});
+
+dropdown.addEventListener('click', (e) => {
+  const item = e.target.closest('.dropdown-item');
+  if (!item) return;
+  const name = item.dataset.name;
+  searchInput.value = '';
+  dropdown.classList.remove('show');
+  makeGuess(name);
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const val = searchInput.value.trim();
+    const match = GUNS_DATA.find(g => g.name.toLowerCase() === val.toLowerCase());
+    if (match && !guessedNames.has(match.name)) {
+      searchInput.value = '';
+      dropdown.classList.remove('show');
+      makeGuess(match.name);
+    }
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-area')) {
+    dropdown.classList.remove('show');
+  }
+});
+
+initGame();
+</script>
+</body>
+</html>
